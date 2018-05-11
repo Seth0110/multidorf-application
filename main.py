@@ -3,10 +3,15 @@ from tkinter import Tk, Button, Frame, Listbox, messagebox
 from multidorf import bay12, fs
 
 
+class AppConfig:
+    def __init__(self, jsonfile):
+        self.terminal_command = None
+
+
 class InstanceConfig:
     def __init__(self, jsonfile):
-        self.name = 'none'
-        self.version = 'none'
+        self.name = 'default'
+        
 
 class Instance:
     def __init__(self, directory, config):
