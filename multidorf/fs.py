@@ -22,3 +22,7 @@ def download():
 
 def therapist():
     return data_root() / 'therapist'
+
+
+def browse(directory):
+    raise NotImplementedError
