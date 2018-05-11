@@ -1,6 +1,3 @@
-import sys
-import os
-from pathlib import Path
 from tkinter import Tk, Label, Button, Frame, Listbox, LEFT, RIGHT, TOP, SINGLE, END
 from multidorf import bay12, fs
 
