@@ -7,6 +7,8 @@ import subprocess
 from sys import platform
 
 
+children = []
+
 class Instance:
     def __init__(self, directory:Path, appconfig:AppConfig):
         self.directory = directory
@@ -26,8 +28,8 @@ class Instance:
 
     def launch_linux(self) -> None:
         exe = self.directory / 'dfhack' if self.use_dfhack() else self.directory / 'df'
-        if exe.is_file():
-            subprocess.Popen(args=[self.appconfig.terminal, '-e', '"' + str(exec) + '"'], cwd=str(self.directory))
+        p = subprocess.Popen(args=[self.appconfig.terminal, '-e', '"' + str(exe) + '"'], cwd=str(self.directory))
+        children.append(p)
 
     def launch_mac(self) -> None:
         raise NotImplementedError
