@@ -1,5 +1,6 @@
 # from bs4 import BeautifulSoup
 import urllib.request
+from datetime import date
 
 
 def list_df():
@@ -9,7 +10,7 @@ def list_df():
     """For now we are hardcoding this in, and we only have a single version.  This is not the final behavior"""
     return [dict(
         version='0.44.10',
-        date='5/5/2018',
+        date=date(2018, 5, 5),
         x86=dict(
             windows='http://bay12games.com/dwarves/df_44_10_legacy32.zip',
             windows_legacy='http://bay12games.com/dwarves/df_44_10_win32.zip',

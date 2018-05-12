@@ -1,32 +1,53 @@
 import tkinter as tk
 from tkinter import Tk, Button, Frame, Listbox, messagebox
-from multidorf import bay12, fs
+from multidorf import bay12, files, appconfig
+from multidorf.appconfig import AppConfig
+from pathlib import Path
+import subprocess
+from sys import platform
 
-
-class AppConfig:
-    def __init__(self, jsonfile):
-        self.terminal_command = None
-
-
-class InstanceConfig:
-    def __init__(self, jsonfile):
-        self.name = 'default'
-        
 
 class Instance:
-    def __init__(self, directory, config):
+    def __init__(self, directory:Path, appconfig:AppConfig):
         self.directory = directory
-        self.config = config
+        self.appconfig = appconfig
 
-    def delete_instance(self):
+    def delete_instance(self) -> None:
+        files.delete_recursively(self.directory)
+
+    def copy_instance(self, destination) -> None:
         raise NotImplementedError
 
-    def copy_instance(self, destination):
+    def use_dfhack(self) -> bool:
+        return (self.directory / 'dfhack').exists()
+
+    def launch_windows(self) -> None:
         raise NotImplementedError
+
+    def launch_linux(self) -> None:
+        exe = self.directory / 'dfhack' if self.use_dfhack() else self.directory / 'df'
+        if exe.is_file():
+            subprocess.Popen(args=[self.appconfig.terminal, '-e', '"' + str(exec) + '"'], cwd=str(self.directory))
+
+    def launch_mac(self) -> None:
+        raise NotImplementedError
+
+    def launch(self) -> None:
+        if platform == 'win32':
+            self.launch_windows()
+        elif platform == 'darwin':
+            self.launch_mac()
+        else:
+            self.launch_linux()
+
+    def __str__(self):
+        return str(self.directory.relative_to(files.instance_dir))
 
 
 class MultiDorf:
-    def __init__(self, master):
+    def __init__(self, master:Tk, config:AppConfig):
+        self.config = config
+
         self.master = master
         self.master.title('MultiDorf VERSION/PLATFORM')
 
@@ -59,7 +80,6 @@ class MultiDorf:
 
         self.instance_lb = Listbox(self.instance_frame, selectmode=tk.SINGLE)
         self.instance_lb.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
-        self.reload_instances()
 
         self.instance_opt_frame = Frame(self.content_frame)
         self.instance_opt_frame.pack(side=tk.RIGHT)
@@ -85,67 +105,73 @@ class MultiDorf:
         self.instance_export_btn = Button(self.instance_opt_frame, text='Export instance', command=self.export_instance)
         self.instance_export_btn.pack(side=tk.TOP)
 
-    def export_instance(self):
+        self.instances = []
+        self.reload_instances()
+
+    def export_instance(self) -> None:
         pass
 
-    def delete_instance(self):
+    def delete_instance(self) -> None:
         instance = self.active_instance()
         if instance is not None:
             result = messagebox.askquestion('Delete', 'Are you sure?', icon='warning')
             if result == 'yes':
                 instance.delete_instance()
+                self.reload_instances()
 
-    def copy_instance(self):
+    def copy_instance(self) -> None:
         instance = self.active_instance()
         if instance is not None:
             # show a copy dialogue, get the name of the destination, new name of instance, and make the new instance
             pass
 
-    def help(self):
+    def help(self) -> None:
         messagebox.showinfo('Info', 'Not implemented')
 
-    def active_instance(self):
+    def active_instance(self) -> Instance:
         cursel = self.instance_lb.curselection()
         if len(cursel) == 1:
-            return self.instance_lb.get(cursel[0])
+            index = self.instance_lb.index(cursel[0])
+            return self.instances[index]
 
-    def view_saves(self):
+    def view_saves(self) -> None:
         instance = self.active_instance()
         if instance is not None:
-            fs.browse(instance.directory / 'data' / 'save')
+            files.browse(instance.directory / 'data' / 'save')
 
-    def instance_folder(self):
+    def instance_folder(self) -> None:
         instance = self.active_instance()
         if instance is not None:
-            fs.browse(instance.directory)
+            files.browse(instance.directory)
 
-    def reload_instances(self):
-        self.instance_lb.delete(0, tk.LAST)
-        for instance_dir in fs.instance().iterdir():
-            if instance_dir.exists() and instance_dir.is_directory():
-                config_file = instance_dir / 'multidorf.json'
-                config = InstanceConfig(config_file)
-                instance = Instance(instance_dir, config)
-                self.instance_lb.insert(self, tk.END, instance)
+    def reload_instances(self) -> None:
+        self.instance_lb.delete(0, tk.END)
+        self.instances = []
+        for instance_dir in files.instance_dir.iterdir():
+            if instance_dir.exists() and instance_dir.is_dir():
+                instance = Instance(instance_dir, self.config)
+                self.instances.append(instance)
+        for instance in self.instances:
+            self.instance_lb.insert(tk.END, instance)
 
-    def edit_instance(self):
+    def edit_instance(self) -> None:
         pass
 
-    def new_instance(self):
+    def new_instance(self) -> None:
         pass
 
-    def settings(self):
+    def settings(self) -> None:
         pass
 
-    def launch_instance(self):
-        pass
+    def launch_instance(self) -> None:
+        if self.active_instance() is not None:
+            self.active_instance().launch()
 
 
 def main():
     root = Tk()
-    gui = MultiDorf(root)
-    for instance in fs.instance().iterdir():
-        gui.instance_lb.insert(tk.END, instance)
+    config = AppConfig()
+    gui = MultiDorf(root, config)
     root.mainloop()
 
 
