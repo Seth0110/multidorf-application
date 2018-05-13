@@ -7,10 +7,8 @@ import subprocess
 from sys import platform
 
 
-children = []
-
 class Instance:
-    def __init__(self, directory:Path, appconfig:AppConfig):
+    def __init__(self, directory: Path, appconfig: AppConfig):
         self.directory = directory
         self.appconfig = appconfig
 
@@ -23,32 +21,51 @@ class Instance:
     def use_dfhack(self) -> bool:
         return (self.directory / 'dfhack').exists()
 
-    def launch_windows(self) -> None:
+    def launch_windows(self, quit_callback) -> None:
         raise NotImplementedError
 
-    def launch_linux(self) -> None:
+    def launch_linux(self, quit_callback) -> None:
         exe = self.directory / 'dfhack' if self.use_dfhack() else self.directory / 'df'
-        p = subprocess.Popen(args=[self.appconfig.terminal, '-e', '"' + str(exe) + '"'], cwd=str(self.directory))
-        children.append(p)
+        command = [self.appconfig.terminal, '-e', '"' + str(exe) + '"']
+        proc = subprocess.Popen(args=command, cwd=str(self.directory))
+        # call quit_callback if not None after proc finishes
 
-    def launch_mac(self) -> None:
+    def launch_mac(self, quit_callback) -> None:
         raise NotImplementedError
 
-    def launch(self) -> None:
+    def launch(self, quit_callback=None) -> None:
         if platform == 'win32':
-            self.launch_windows()
+            self.launch_windows(quit_callback=quit_callback)
         elif platform == 'darwin':
-            self.launch_mac()
+            self.launch_mac(quit_callback=quit_callback)
         else:
-            self.launch_linux()
+            self.launch_linux(quit_callback=quit_callback)
 
     def __str__(self):
         return str(self.directory.relative_to(files.instance_dir))
 
 
+class EditGui:
+    def __init__(self, master: Tk, instance: Instance):
+        self.master = master
+        self.instance = instance
+
+
+class SettingsGui:
+    def __init__(self, master: Tk):
+        self.master = master
+
+
+class NewInstance:
+    def __init__(self, master: Tk):
+        self.master = master
+
+
 class MultiDorf:
-    def __init__(self, master:Tk, config:AppConfig):
+    def __init__(self, master: Tk, config: AppConfig):
         self.config = config
+        self.controls = []
+        self.instances = []
 
         self.master = master
         self.master.title('MultiDorf VERSION/PLATFORM')
@@ -61,18 +78,23 @@ class MultiDorf:
 
         self.instance_btn = Button(self.btn_frame, text='New Instance', command=self.new_instance)
         self.instance_btn.pack(side=tk.LEFT)
+        self.controls.append(self.instance_btn)
 
         self.reload_btn = Button(self.btn_frame, text='Reload instances', command=self.reload_instances)
         self.reload_btn.pack(side=tk.LEFT)
+        self.controls.append(self.reload_btn)
 
         self.folders_btn = Button(self.btn_frame, text='Folders')
         self.folders_btn.pack(side=tk.LEFT)
+        self.controls.append(self.folders_btn)
 
         self.settings_btn = Button(self.btn_frame, text='Settings', command=self.settings)
         self.settings_btn.pack(side=tk.LEFT)
+        self.controls.append(self.settings_btn)
 
         self.help_btn = Button(self.btn_frame, text='Help', command=self.help)
         self.help_btn.pack(side=tk.LEFT)
+        self.controls.append(self.help_btn)
 
         self.content_frame = Frame(master)
         self.content_frame.pack(side=tk.BOTTOM, expand=True, fill=tk.BOTH)
@@ -88,26 +110,32 @@ class MultiDorf:
 
         self.instance_launch_btn = Button(self.instance_opt_frame, text='Launch', command=self.launch_instance)
         self.instance_launch_btn.pack(side=tk.TOP)
+        self.controls.append(self.instance_launch_btn)
 
         self.instance_edit_btn = Button(self.instance_opt_frame, text='Edit', command=self.edit_instance)
         self.instance_edit_btn.pack(side=tk.TOP)
+        self.controls.append(self.instance_edit_btn)
 
         self.instance_saves_btn = Button(self.instance_opt_frame, text='View saves', command=self.view_saves)
         self.instance_saves_btn.pack(side=tk.TOP)
+        self.controls.append(self.instance_saves_btn)
 
         self.instance_folder_btn = Button(self.instance_opt_frame, text='Instance folder', command=self.instance_folder)
         self.instance_folder_btn.pack(side=tk.TOP)
+        self.controls.append(self.instance_folder_btn)
 
         self.instance_copy_btn = Button(self.instance_opt_frame, text='Copy instance', command=self.copy_instance)
         self.instance_copy_btn.pack(side=tk.TOP)
+        self.controls.append(self.instance_copy_btn)
 
         self.instance_delete_btn = Button(self.instance_opt_frame, text='Delete instance', command=self.delete_instance)
         self.instance_delete_btn.pack(side=tk.TOP)
+        self.controls.append(self.instance_delete_btn)
 
         self.instance_export_btn = Button(self.instance_opt_frame, text='Export instance', command=self.export_instance)
         self.instance_export_btn.pack(side=tk.TOP)
+        self.controls.append(self.instance_export_btn)
 
-        self.instances = []
         self.reload_instances()
 
     def export_instance(self) -> None:
@@ -141,6 +169,14 @@ class MultiDorf:
         if instance is not None:
             files.browse(instance.directory / 'data' / 'save')
 
+    def enable_controls(self):
+        for c in self.controls:
+            c.configure(state=tk.NORMAL)
+
+    def disable_controls(self):
+        for c in self.controls:
+            c.configure(state=tk.DISABLED)
+
     def instance_folder(self) -> None:
         instance = self.active_instance()
         if instance is not None:
@@ -157,23 +193,30 @@ class MultiDorf:
             self.instance_lb.insert(tk.END, instance)
 
     def edit_instance(self) -> None:
-        pass
+        instance = self.active_instance()
+        if instance is not None:
+            edit = EditGui(instance)
+            self.master.configure(state=tk.DISABLED)
 
     def new_instance(self) -> None:
-        pass
+        # TODO
+        #  create dialogue for this
+        NewInstance(self.master)
 
     def settings(self) -> None:
-        pass
+        # TODO
+        SettingsGui(self.master)
 
     def launch_instance(self) -> None:
-        if self.active_instance() is not None:
-            self.active_instance().launch()
+        instance = self.active_instance()
+        if instance is not None:
+            instance.launch(quit_callback=self.enable_controls())
 
 
 def main():
     root = Tk()
     config = AppConfig()
-    gui = MultiDorf(root, config)
+    MultiDorf(root, config)
     root.mainloop()
 
 
