@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import Tk, Button, Frame, Listbox, messagebox
-from multidorf import bay12, files, appconfig
-from multidorf.appconfig import AppConfig
+import files
+from appconfig import AppConfig
 from pathlib import Path
 import subprocess
 from sys import platform
