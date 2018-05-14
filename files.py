@@ -1,7 +1,7 @@
-from pathlib import Path
-from sys import platform
 import os
 import subprocess
+from pathlib import Path
+from sys import platform
 
 if platform == 'win32':
     data_root = Path(os.getenv('APPDATA')) / 'multidorf'
@@ -37,7 +37,7 @@ def browse(directory: Path) -> None:
     """
     if platform == 'win32':
         subprocess.Popen(args=['explorer', '"' + str(directory) + '"'])
-    elif platform == 'darwin': # use 'open' on mac
+    elif platform == 'darwin':  # use 'open' on mac
         os.system('open ' + str(directory))
     elif platform == 'linux':  # use xdg-open I guess lol
         subprocess.Popen(args=['xdg-open', str(directory)])
