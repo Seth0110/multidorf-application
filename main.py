@@ -1,16 +1,15 @@
 import tkinter as tk
 from tkinter import Tk, Button, Frame, Listbox, messagebox
 import files
-from appconfig import AppConfig
 from pathlib import Path
 import subprocess
 from sys import platform
+from typing import Callable
 
 
 class Instance:
-    def __init__(self, directory: Path, appconfig: AppConfig):
+    def __init__(self, directory: Path):
         self.directory = directory
-        self.appconfig = appconfig
 
     def delete_instance(self) -> None:
         files.delete_recursively(self.directory)
@@ -21,25 +20,30 @@ class Instance:
     def use_dfhack(self) -> bool:
         return (self.directory / 'dfhack').exists()
 
-    def launch_windows(self, quit_callback) -> None:
+    def launch_windows(self, quit_callback:Callable([], None)) -> None:
         raise NotImplementedError
 
-    def launch_linux(self, quit_callback) -> None:
+    def launch_linux(self, quit_callback:Callable([], None)) -> None:
         exe = self.directory / 'dfhack' if self.use_dfhack() else self.directory / 'df'
-        command = [self.appconfig.terminal, '-e', '"' + str(exe) + '"']
+        command = ['x-terminal-emulator', '-e', '"' + str(exe) + '"']
         proc = subprocess.Popen(args=command, cwd=str(self.directory))
         # call quit_callback if not None after proc finishes
+        proc.wait()
+        if quit_callback is not None:
+            quit_callback()
 
-    def launch_mac(self, quit_callback) -> None:
+    def launch_mac(self, quit_callback:Callable([], None)) -> None:
         raise NotImplementedError
 
-    def launch(self, quit_callback=None) -> None:
+    def launch(self, quit_callback:Callable([], None) = None) -> None:
         if platform == 'win32':
             self.launch_windows(quit_callback=quit_callback)
         elif platform == 'darwin':
             self.launch_mac(quit_callback=quit_callback)
-        else:
+        elif platform == 'linux':
             self.launch_linux(quit_callback=quit_callback)
+        else:
+            raise NotImplementedError
 
     def __str__(self):
         return str(self.directory.relative_to(files.instance_dir))
@@ -62,8 +66,7 @@ class NewInstance:
 
 
 class MultiDorf:
-    def __init__(self, master: Tk, config: AppConfig):
-        self.config = config
+    def __init__(self, master: Tk):
         self.controls = []
         self.instances = []
 
@@ -187,7 +190,7 @@ class MultiDorf:
         self.instances = []
         for instance_dir in files.instance_dir.iterdir():
             if instance_dir.exists() and instance_dir.is_dir():
-                instance = Instance(instance_dir, self.config)
+                instance = Instance(instance_dir)
                 self.instances.append(instance)
         for instance in self.instances:
             self.instance_lb.insert(tk.END, instance)
@@ -195,7 +198,7 @@ class MultiDorf:
     def edit_instance(self) -> None:
         instance = self.active_instance()
         if instance is not None:
-            edit = EditGui(instance)
+            edit = EditGui(self.master, instance)
             self.master.configure(state=tk.DISABLED)
 
     def new_instance(self) -> None:
@@ -215,8 +218,7 @@ class MultiDorf:
 
 def main():
     root = Tk()
-    config = AppConfig()
-    MultiDorf(root, config)
+    MultiDorf(root)
     root.mainloop()
 
 
