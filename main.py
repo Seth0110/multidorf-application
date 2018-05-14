@@ -1,10 +1,12 @@
-import tkinter as tk
-from tkinter import Tk, Button, Frame, Listbox, messagebox
-import files
-from pathlib import Path
 import subprocess
+import tkinter as tk
+from pathlib import Path
 from sys import platform
+from tkinter import Tk, Button, Frame, Listbox, messagebox
 from typing import Callable
+
+import files
+from version import version
 
 
 class Instance:
@@ -20,10 +22,10 @@ class Instance:
     def use_dfhack(self) -> bool:
         return (self.directory / 'dfhack').exists()
 
-    def launch_windows(self, quit_callback:Callable([], None)) -> None:
+    def launch_windows(self, quit_callback: Callable([], None)) -> None:
         raise NotImplementedError
 
-    def launch_linux(self, quit_callback:Callable([], None)) -> None:
+    def launch_linux(self, quit_callback: Callable([], None)) -> None:
         exe = self.directory / 'dfhack' if self.use_dfhack() else self.directory / 'df'
         command = ['x-terminal-emulator', '-e', '"' + str(exe) + '"']
         proc = subprocess.Popen(args=command, cwd=str(self.directory))
@@ -32,10 +34,10 @@ class Instance:
         if quit_callback is not None:
             quit_callback()
 
-    def launch_mac(self, quit_callback:Callable([], None)) -> None:
+    def launch_mac(self, quit_callback: Callable([], None)) -> None:
         raise NotImplementedError
 
-    def launch(self, quit_callback:Callable([], None) = None) -> None:
+    def launch(self, quit_callback: Callable([], None) = None) -> None:
         if platform == 'win32':
             self.launch_windows(quit_callback=quit_callback)
         elif platform == 'darwin':
@@ -55,7 +57,7 @@ class MultiDorf:
         self.instances = []
 
         self.master = master
-        self.master.title('MultiDorf VERSION/PLATFORM')
+        self.master.title('MultiDorf ' + version + ' ' + platform)
 
         self.header_frame = Frame(master)
         self.header_frame.pack(side=tk.TOP, fill=tk.X)
