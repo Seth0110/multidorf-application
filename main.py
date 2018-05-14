@@ -49,22 +49,6 @@ class Instance:
         return str(self.directory.relative_to(files.instance_dir))
 
 
-class EditGui:
-    def __init__(self, master: Tk, instance: Instance):
-        self.master = master
-        self.instance = instance
-
-
-class SettingsGui:
-    def __init__(self, master: Tk):
-        self.master = master
-
-
-class NewInstance:
-    def __init__(self, master: Tk):
-        self.master = master
-
-
 class MultiDorf:
     def __init__(self, master: Tk):
         self.controls = []
@@ -153,13 +137,10 @@ class MultiDorf:
                 self.reload_instances()
 
     def copy_instance(self) -> None:
-        instance = self.active_instance()
-        if instance is not None:
-            # show a copy dialogue, get the name of the destination, new name of instance, and make the new instance
-            pass
+        raise NotImplementedError
 
     def help(self) -> None:
-        messagebox.showinfo('Info', 'Not implemented')
+        raise NotImplementedError
 
     def active_instance(self) -> Instance:
         cursel = self.instance_lb.curselection()
@@ -196,19 +177,13 @@ class MultiDorf:
             self.instance_lb.insert(tk.END, instance)
 
     def edit_instance(self) -> None:
-        instance = self.active_instance()
-        if instance is not None:
-            edit = EditGui(self.master, instance)
-            self.master.configure(state=tk.DISABLED)
+        raise NotImplementedError
 
     def new_instance(self) -> None:
-        # TODO
-        #  create dialogue for this
-        NewInstance(self.master)
+        raise NotImplementedError
 
     def settings(self) -> None:
-        # TODO
-        SettingsGui(self.master)
+        raise NotImplementedError
 
     def launch_instance(self) -> None:
         instance = self.active_instance()
